@@ -1,24 +1,38 @@
-function checkGrammar() {
+async function checkGrammar() {
     const text = document.getElementById('textInput').value;
     const output = document.getElementById('output');
     output.innerHTML = '';
 
-    // Simple grammar check example
-    // For demonstration purposes, we will only check for a few common mistakes
-    const commonMistakes = [
-        { regex: /\bthere\b/, suggestion: 'Did you mean "their" or "they\'re"?' },
-        { regex: /\byour\b/, suggestion: 'Did you mean "you\'re"?' },
-        { regex: /\btheyre\b/, suggestion: 'Did you mean "they\'re"?' }
-    ];
-
-    commonMistakes.forEach(mistake => {
-        const found = text.match(mistake.regex);
-        if (found) {
-            output.innerHTML += `Mistake found: "${found[0]}" - ${mistake.suggestion}\n`;
-        }
+    // Replace the base URL with the appropriate endpoint for your chosen API.
+    const apiUrl = 'https://api.languagetool.org/v2/check';
+    const params = new URLSearchParams({
+        text: text,
+        language: 'en-US',
     });
 
-    if (output.innerHTML === '') {
-        output.innerHTML = 'No mistakes found.';
+    try {
+        const response = await fetch(`${apiUrl}?${params}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        });
+
+        const data = await response.json();
+
+        if (data.matches.length === 0) {
+            output.innerHTML = 'No mistakes found.';
+        } else {
+            data.matches.forEach(match => {
+                const from = match.offset;
+                const to = match.offset + match.length;
+                const errorText = text.substring(from, to);
+                const suggestion = match.replacements.length > 0 ? match.replacements[0].value : 'No suggestion available';
+
+                output.innerHTML += `Mistake: "${errorText}" - Suggestion: "${suggestion}"<br>`;
+            });
+        }
+    } catch (error) {
+        output.innerHTML = 'Error checking text. Please try again.';
     }
 }
